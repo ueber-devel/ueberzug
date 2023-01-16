@@ -3,6 +3,7 @@
 #include <X11/Xlib.h>
 #include <X11/extensions/XRes.h>
 #include <X11/extensions/XShm.h>
+#include <stdlib.h>
 
 #include "util.h"
 #include "display.h"
@@ -92,13 +93,42 @@ has_property(DisplayObject *self, Window window, Atom property) {
     return status == Success && !(actual_type_return == None && actual_format_return == 0);
 }
 
+static void
+get_child_window_ids_helper(Display *display, Window window,
+        Window **total_children, unsigned int *total_num_children) {
+    Window _, *children;
+    unsigned int num_children;
+
+    XQueryTree(display, window, &_, &_, &children, &num_children);
+    if (!children) return;
+
+    if (!*total_children) {
+        *total_children = calloc(num_children, sizeof(Window));
+    } else {
+        Window *tmp = reallocarray(*total_children, num_children + *total_num_children, sizeof(Window));
+        if (tmp) {
+            *total_children = tmp;
+        }
+    }
+
+    for (int i = 0; i < num_children; ++i) {
+        (*total_children)[i + *total_num_children] = children[i];
+    }
+    *total_num_children += num_children;
+
+    for (int i = 0; i < num_children; ++i) {
+        get_child_window_ids_helper(display, children[i], total_children, total_num_children);
+    }
+
+    XFree(children);
+}
 
 static PyObject *
 Display_get_child_window_ids(DisplayObject *self, PyObject *args, PyObject *kwds) {
     static char *kwlist[] = {"parent_id", NULL};
     Window parent = XDefaultRootWindow(self->info_display);
-    Window _, *children;
-    unsigned int children_count;
+    Window *children = NULL;
+    unsigned int children_count = 0;
 
     if (!PyArg_ParseTupleAndKeywords(
             args, kwds, "|k", kwlist,
@@ -106,11 +136,7 @@ Display_get_child_window_ids(DisplayObject *self, PyObject *args, PyObject *kwds
         Py_RETURN_ERROR;
     }
 
-    if (!XQueryTree(
-            self->info_display, parent,
-            &_, &_, &children, &children_count)) {
-        raise(OSError, "failed to query child windows of %lu", parent);
-    }
+    get_child_window_ids_helper(self->info_display, parent, &children, &children_count);
 
     PyObject *child_ids = PyList_New(0);
     if (children) {
