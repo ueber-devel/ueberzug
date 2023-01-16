@@ -139,8 +139,9 @@ Display_get_child_window_ids(DisplayObject *self, PyObject *args, PyObject *kwds
         Py_RETURN_ERROR;
     }
 
-    get_child_window_ids_helper(self->info_display, parent, &children, &children_count);
+    get_child_window_ids_helper(self->info_display, parent, &children, &children_count, &xtree_return);
     if (!xtree_return) {
+        free(children);
         raise(OSError, "failed to query child windows of %lu", parent);
     }
 
