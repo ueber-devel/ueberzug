@@ -43,7 +43,12 @@ but they will be installed by pip.
 
 - Install by using pip:  
   The package is named `ueberzug`  
-- Packages of linux distributions:  
+- Linux distribution packages:  
+  ueberzug is packaged on most popular distros debian, arch, fedora, gentoo  
+  and void, please request the package maintainer of your favourite distro to  
+  package the latest release of ueberzug.
+
+  Original author rant:  
   At least one packager applies patches to my code.  
   So if there are issues uninstall it and install it via pip.  
   Actually I think it's not fine that they call it ueberzug after changing the code.  
