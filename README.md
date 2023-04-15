@@ -311,3 +311,8 @@ Scripts:
 
 - fzf with image preview: https://github.com/ueber-devel/ueberzug/blob/master/examples/fzfimg.sh
 - Mastodon viewer: https://github.com/ueber-devel/ueberzug/blob/master/examples/mastodon.sh
+
+
+Similar projects:
+
+- Überzug implementation in c++: https://github.com/jstkdng/ueberzugpp
