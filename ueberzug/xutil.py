@@ -138,8 +138,8 @@ def get_parent_window_infos(display: X.Display):
             try:
                 window_pid, window_id = next(iter(sort_by_key_list(
                     ppid_window_id_map, ppids)))
-                window_children_pids = ppids[:ppids.index(window_pid)][::-1]
-                pty = get_first_pty(window_children_pids)
+                # window_children_pids = ppids[:ppids.index(window_pid)][::-1]
+                pty = get_first_pty(ppids)
                 window_infos.append(TerminalWindowInfo(window_id, pty))
             except StopIteration:
                 # Window needs to be mapped,
