@@ -148,7 +148,7 @@ class DistortImageScaler(ImageScaler):
               width: int, height: int):
         import PIL.Image
         width, height = self.calculate_resolution(image, width, height)
-        return image.resize((width, height), PIL.Image.ANTIALIAS)
+        return image.resize((width, height), PIL.Image.LANCZOS)
 
 
 class FitContainImageScaler(DistortImageScaler):
@@ -224,7 +224,7 @@ class ForcedCoverImageScaler(DistortImageScaler, OffsetImageScaler):
         offset_y = self.get_offset(position.y, height, image_height)
 
         return image \
-            .resize((image_width, image_height), PIL.Image.ANTIALIAS) \
+            .resize((image_width, image_height), PIL.Image.LANCZOS) \
             .crop((offset_x, offset_y,
                    offset_x + width, offset_y + height))
 

@@ -135,7 +135,7 @@ class CoverPostLoadImageProcessor(PostLoadImageProcessor):
             image = image.resize(
                 (int(resize_ratio * image.width),
                  int(resize_ratio * image.height)),
-                PIL.Image.ANTIALIAS)
+                PIL.Image.LANCZOS)
 
         return image
 
