@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-import distutils.core
 import setuptools
+import distutils.core
 import glob
 
 import ueberzug
