@@ -48,6 +48,8 @@ but they will be installed by pip.
   and void, please request the package maintainer of your favourite distro to  
   package the latest release of ueberzug.
 
+  [![Packaging status](https://repology.org/badge/vertical-allrepos/ueberzug.svg)](https://repology.org/project/ueberzug/versions)
+
   Original author rant:  
   At least one packager applies patches to my code.  
   So if there are issues uninstall it and install it via pip.  
