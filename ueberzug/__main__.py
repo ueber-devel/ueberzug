@@ -39,21 +39,25 @@ def main():
     options = docopt.docopt(__doc__)
     module = None
 
-    if options['layer']:
+    if options["layer"]:
         import ueberzug.layer as layer
+
         module = layer
-    elif options['library']:
+    elif options["library"]:
         import ueberzug.library as library
+
         module = library
-    elif options['query_windows']:
+    elif options["query_windows"]:
         import ueberzug.query_windows as query_windows
+
         module = query_windows
-    elif options['version']:
+    elif options["version"]:
         import ueberzug.version as version
+
         module = version
 
     module.main(options)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

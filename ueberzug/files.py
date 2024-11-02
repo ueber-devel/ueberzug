@@ -34,7 +34,7 @@ def lock(path: pathlib.PosixPath):
     Args:
         path (pathlib.PosixPath): path to the file
     """
-    path = path.with_suffix('.lock')
+    path = path.with_suffix(".lock")
 
     if not path.exists():
         path.touch()

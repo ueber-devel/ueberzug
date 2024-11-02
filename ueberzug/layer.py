@@ -27,8 +27,9 @@ async def process_xevents(loop, display, windows):
             display.discard_event()
 
 
-async def process_commands(loop, shutdown_routine_factory,
-                           windows, view, tools):
+async def process_commands(
+    loop, shutdown_routine_factory, windows, view, tools
+):
     """Coroutine which processes the input of stdin"""
     try:
         async for line in files.LineReader(loop, sys.stdin):
@@ -36,12 +37,11 @@ async def process_commands(loop, shutdown_routine_factory,
                 break
 
             try:
-                line = re.sub('\\\\', '', line)
+                line = re.sub("\\\\", "", line)
 
                 data = tools.parser.parse(line[:-1])
-                command = action.Command(data['action'])
-                await command.action_class(**data) \
-                    .apply(windows, view, tools)
+                command = action.Command(data["action"])
+                await command.action_class(**data).apply(windows, view, tools)
             except (OSError, KeyError, ValueError, TypeError) as error:
                 tools.error_handler(error)
     finally:
@@ -56,11 +56,11 @@ async def query_windows(display: X.Display, window_factory, windows, view):
     """
     parent_window_infos = xutil.get_parent_window_infos(display)
     view.offset = tmux_util.get_offset()
-    map_parent_window_id_info = {info.window_id: info
-                                 for info in parent_window_infos}
+    map_parent_window_id_info = {
+        info.window_id: info for info in parent_window_infos
+    }
     parent_window_ids = map_parent_window_id_info.keys()
-    map_current_windows = {window.parent_id: window
-                           for window in windows}
+    map_current_windows = {window.parent_id: window for window in windows}
     current_window_ids = map_current_windows.keys()
     diff_window_ids = parent_window_ids ^ current_window_ids
     added_window_ids = diff_window_ids & parent_window_ids
@@ -68,16 +68,12 @@ async def query_windows(display: X.Display, window_factory, windows, view):
     draw = added_window_ids or removed_window_ids
 
     if added_window_ids:
-        windows += window_factory.create(*[
-            map_parent_window_id_info.get(wid)
-            for wid in added_window_ids
-        ])
+        windows += window_factory.create(
+            *[map_parent_window_id_info.get(wid) for wid in added_window_ids]
+        )
 
     if removed_window_ids:
-        windows -= [
-            map_current_windows.get(wid)
-            for wid in removed_window_ids
-        ]
+        windows -= [map_current_windows.get(wid) for wid in removed_window_ids]
 
     if draw:
         windows.draw()
@@ -98,8 +94,7 @@ async def shutdown(loop):
         all_tasks = asyncio.Task.all_tasks()
         current_task = asyncio.tasks.Task.current_task()
 
-    tasks = [task for task in all_tasks
-             if task is not current_task]
+    tasks = [task for task in all_tasks if task is not current_task]
     list(map(lambda task: task.cancel(), tasks))
     await asyncio.gather(*tasks, return_exceptions=True)
     loop.stop()
@@ -120,23 +115,25 @@ def setup_tmux_hooks():
         function which unregisters the registered hooks
     """
     events = (
-        'client-session-changed',
-        'session-window-changed',
-        'pane-mode-changed',
-        'client-detached'
+        "client-session-changed",
+        "session-window-changed",
+        "pane-mode-changed",
+        "client-detached",
     )
 
     xdg_cache_dir = os.environ.get("XDG_CACHE_HOME")
     if xdg_cache_dir:
         lock_directory_path = pathlib.PosixPath.joinpath(
-                pathlib.PosixPath(xdg_cache_dir), pathlib.PosixPath('ueberzug'))
+            pathlib.PosixPath(xdg_cache_dir), pathlib.PosixPath("ueberzug")
+        )
     else:
-        lock_directory_path = pathlib.PosixPath.joinpath(pathlib.PosixPath.home(),
-            pathlib.PosixPath('.cache/ueberzug'))
+        lock_directory_path = pathlib.PosixPath.joinpath(
+            pathlib.PosixPath.home(), pathlib.PosixPath(".cache/ueberzug")
+        )
 
     lock_file_path = lock_directory_path / tmux_util.get_session_id()
     own_pid = str(os.getpid())
-    command_template = 'ueberzug query_windows '
+    command_template = "ueberzug query_windows "
 
     try:
         lock_directory_path.mkdir()
@@ -144,7 +141,7 @@ def setup_tmux_hooks():
         pass
 
     def update_hooks(pid_file, pids):
-        pids = ' '.join(pids)
+        pids = " ".join(pids)
         command = command_template + pids
 
         pid_file.seek(0)
@@ -176,20 +173,27 @@ def setup_tmux_hooks():
 def error_processor_factory(parser):
     def wrapper(exception):
         return process_error(parser, exception)
+
     return wrapper
 
 
 def process_error(parser, exception):
-    print(parser.unparse({
-        'type': 'error',
-        'name': type(exception).__name__,
-        'message': str(exception),
-        # 'stack': traceback.format_exc()
-    }), file=sys.stderr)
+    print(
+        parser.unparse(
+            {
+                "type": "error",
+                "name": type(exception).__name__,
+                "message": str(exception),
+                # 'stack': traceback.format_exc()
+            }
+        ),
+        file=sys.stderr,
+    )
 
 
 class View:
     """Data class which holds meta data about the screen"""
+
     def __init__(self):
         self.offset = geometry.Distance()
         self.media = {}
@@ -199,6 +203,7 @@ class View:
 
 class Tools:
     """Data class which holds helper functions, ..."""
+
     def __init__(self, loader, parser, error_handler):
         self.loader = loader
         self.parser = parser
@@ -206,7 +211,7 @@ class Tools:
 
 
 def main(options):
-    if options['--silent']:
+    if options["--silent"]:
         try:
             outfile = os.open(os.devnull, os.O_WRONLY)
             os.close(sys.stderr.fileno())
@@ -216,10 +221,8 @@ def main(options):
 
     loop = asyncio.get_event_loop()
     executor = thread.DaemonThreadPoolExecutor(max_workers=2)
-    parser_object = (parser.ParserOption(options['--parser'])
-                     .parser_class())
-    image_loader = (loading.ImageLoaderOption(options['--loader'])
-                    .loader_class())
+    parser_object = parser.ParserOption(options["--parser"]).parser_class()
+    image_loader = loading.ImageLoaderOption(options["--loader"]).loader_class()
     error_handler = error_processor_factory(parser_object)
     view = View()
     tools = Tools(image_loader, parser_object, error_handler)
@@ -240,23 +243,24 @@ def main(options):
         loop.set_default_executor(executor)
 
         for sig in (signal.SIGINT, signal.SIGTERM):
-            loop.add_signal_handler(
-                sig, shutdown_factory(loop))
+            loop.add_signal_handler(sig, shutdown_factory(loop))
 
         loop.add_signal_handler(
             signal.SIGUSR1,
-            lambda: asyncio.ensure_future(query_windows(
-                display, window_factory, windows, view)))
+            lambda: asyncio.ensure_future(
+                query_windows(display, window_factory, windows, view)
+            ),
+        )
 
         loop.add_signal_handler(
             signal.SIGWINCH,
-            lambda: asyncio.ensure_future(
-                reset_terminal_info(windows)))
+            lambda: asyncio.ensure_future(reset_terminal_info(windows)),
+        )
 
         asyncio.ensure_future(process_xevents(loop, display, windows))
-        asyncio.ensure_future(process_commands(
-            loop, shutdown_factory(loop),
-            windows, view, tools))
+        asyncio.ensure_future(
+            process_commands(loop, shutdown_factory(loop), windows, view, tools)
+        )
 
         try:
             loop.run_forever()

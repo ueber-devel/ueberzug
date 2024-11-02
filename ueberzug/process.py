@@ -38,19 +38,20 @@ def get_info(pid: int):
     Raises:
         FileNotFoundError: if there is no process with the given pid
     """
-    with open(f'/proc/{pid}/stat', 'rb') as proc_file:
+    with open(f"/proc/{pid}/stat", "rb") as proc_file:
         data = proc_file.read()
-        return (
-            re.search(
-                rb'^(?P<pid>[-+]?\d+) '
-                rb'\((?P<comm>.{0,' +
-                str(MAX_PROCESS_NAME_LENGTH).encode() + rb'})\) '
-                rb'(?P<state>.) '
-                rb'(?P<ppid>[-+]?\d+) '
-                rb'(?P<pgrp>[-+]?\d+) '
-                rb'(?P<session>[-+]?\d+) '
-                rb'(?P<tty_nr>[-+]?\d+)', data)
-            .groupdict())
+        return re.search(
+            rb"^(?P<pid>[-+]?\d+) "
+            rb"\((?P<comm>.{0,"
+            + str(MAX_PROCESS_NAME_LENGTH).encode()
+            + rb"})\) "
+            rb"(?P<state>.) "
+            rb"(?P<ppid>[-+]?\d+) "
+            rb"(?P<pgrp>[-+]?\d+) "
+            rb"(?P<session>[-+]?\d+) "
+            rb"(?P<tty_nr>[-+]?\d+)",
+            data,
+        ).groupdict()
 
 
 @functools.lru_cache()
@@ -63,7 +64,7 @@ def get_pty_slave_folders():
     """
     paths = []
 
-    with open('/proc/tty/drivers', 'rb') as drivers_file:
+    with open("/proc/tty/drivers", "rb") as drivers_file:
         for line in drivers_file:
             # The documentation about /proc/tty/drivers
             # is a little bit short (man proc):
@@ -72,14 +73,11 @@ def get_pty_slave_folders():
             #     subdirectories for tty drivers and line disciplines.
             # So.. see the source code:
             # https://github.com/torvalds/linux/blob/8653b778e454a7708847aeafe689bce07aeeb94e/fs/proc/proc_tty.c#L28-L67
-            driver = (
-                re.search(
-                    rb'^(?P<name>(\S| )+?) +'
-                    rb'(?P<path>/dev/\S+) ',
-                    line)
-                .groupdict())
-            if driver['name'] == b'pty_slave':
-                paths += [driver['path'].decode()]
+            driver = re.search(
+                rb"^(?P<name>(\S| )+?) +" rb"(?P<path>/dev/\S+) ", line
+            ).groupdict()
+            if driver["name"] == b"pty_slave":
+                paths += [driver["path"].decode()]
 
     return paths
 
@@ -99,7 +97,7 @@ def get_parent_pid(pid: int):
         FileNotFoundError: if there is no process with the given pid
     """
     process_info = get_info(pid)
-    return int(process_info['ppid'])
+    return int(process_info["ppid"])
 
 
 def calculate_minor_device_number(tty_nr: int):
@@ -118,10 +116,10 @@ def calculate_minor_device_number(tty_nr: int):
     SHIFTED_BITS = 12
     FIRST_BITS_MASK = 0xFF
     SHIFTED_BITS_MASK = 0xFFF00000
-    minor_device_number = (
-        (tty_nr & FIRST_BITS_MASK) +
-        ((tty_nr & SHIFTED_BITS_MASK)
-         >> (TTY_NR_BITS - SHIFTED_BITS - FIRST_BITS)))
+    minor_device_number = (tty_nr & FIRST_BITS_MASK) + (
+        (tty_nr & SHIFTED_BITS_MASK)
+        >> (TTY_NR_BITS - SHIFTED_BITS - FIRST_BITS)
+    )
     return minor_device_number
 
 
@@ -144,11 +142,11 @@ def get_pty_slave(pid: int):
     """
     pty_slave_folders = get_pty_slave_folders()
     process_info = get_info(pid)
-    tty_nr = int(process_info['tty_nr'])
+    tty_nr = int(process_info["tty_nr"])
     minor_device_number = calculate_minor_device_number(tty_nr)
 
     for folder in pty_slave_folders:
-        device_path = f'{folder}/{minor_device_number}'
+        device_path = f"{folder}/{minor_device_number}"
 
         try:
             if tty_nr == os.stat(device_path).st_rdev:

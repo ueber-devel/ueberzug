@@ -1,4 +1,5 @@
 """This module contains x11 utils"""
+
 import functools
 import asyncio
 import os
@@ -61,7 +62,8 @@ def get_pid_window_id_map(display: X.Display):
     """
     return {
         display.get_window_pid(window_id): window_id
-        for window_id in display.get_child_window_ids()}
+        for window_id in display.get_child_window_ids()
+    }
 
 
 def sort_by_key_list(mapping: dict, key_list: list):
@@ -77,8 +79,8 @@ def sort_by_key_list(mapping: dict, key_list: list):
     """
     key_map = {key: index for index, key in enumerate(key_list)}
     return sorted(
-        mapping.items(),
-        key=lambda item: key_map.get(item[0], float('inf')))
+        mapping.items(), key=lambda item: key_map.get(item[0], float("inf"))
+    )
 
 
 def key_intersection(mapping: dict, key_list: list):
@@ -93,8 +95,7 @@ def key_intersection(mapping: dict, key_list: list):
         dict: which only contains keys which are also in key_list
     """
     key_map = {key: index for index, key in enumerate(key_list)}
-    return {key: value for key, value in mapping.items()
-            if key in key_map}
+    return {key: value for key, value in mapping.items() if key in key_map}
 
 
 def get_first_pty(pids: list):
@@ -129,15 +130,16 @@ def get_parent_window_infos(display: X.Display):
         pid_window_id_map = get_pid_window_id_map(display)
         # Insert current window's PID & WID to the end of map to support tabbed.
         # NOTE: Terminal (current window) must have WINDOWID as env. variable.
-        if (os.environ.get('WINDOWID') != None):
-            pid_window_id_map[os.getpid()] = int(os.environ.get('WINDOWID'))
+        if os.environ.get("WINDOWID") != None:
+            pid_window_id_map[os.getpid()] = int(os.environ.get("WINDOWID"))
 
         for pid in client_pids:
             ppids = get_parent_pids(pid)
             ppid_window_id_map = key_intersection(pid_window_id_map, ppids)
             try:
-                window_pid, window_id = next(iter(sort_by_key_list(
-                    ppid_window_id_map, ppids)))
+                window_pid, window_id = next(
+                    iter(sort_by_key_list(ppid_window_id_map, ppids))
+                )
                 # window_children_pids = ppids[:ppids.index(window_pid)][::-1]
                 pty = get_first_pty(ppids)
                 window_infos.append(TerminalWindowInfo(window_id, pty))

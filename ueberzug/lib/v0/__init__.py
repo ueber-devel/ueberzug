@@ -17,6 +17,7 @@ from ueberzug.loading import ImageLoaderOption
 
 class Visibility(enum.Enum):
     """Enum which defines the different visibility states."""
+
     VISIBLE = enum.auto()
     INVISIBLE = enum.auto()
 
@@ -34,20 +35,26 @@ class Placement:
     """
 
     __initialised = False
-    __DEFAULT_VALUES = {str: '', int: 0}
-    __ATTRIBUTES = {attribute.name: attribute
-                    for attribute in attr.fields(_action.AddImageAction)}
+    __DEFAULT_VALUES = {str: "", int: 0}
+    __ATTRIBUTES = {
+        attribute.name: attribute
+        for attribute in attr.fields(_action.AddImageAction)
+    }
     __EMPTY_BASE_PAIRS = (
-        lambda attributes, default_values:
-        {attribute.name: default_values[attribute.type]
-         for attribute in attributes.values()
-         if (attribute.default == attr.NOTHING
-             and attribute.init)}
-        )(__ATTRIBUTES, __DEFAULT_VALUES)
+        lambda attributes, default_values: {
+            attribute.name: default_values[attribute.type]
+            for attribute in attributes.values()
+            if (attribute.default == attr.NOTHING and attribute.init)
+        }
+    )(__ATTRIBUTES, __DEFAULT_VALUES)
 
-    def __init__(self, canvas, identifier,
-                 visibility: Visibility = Visibility.INVISIBLE,
-                 **kwargs):
+    def __init__(
+        self,
+        canvas,
+        identifier,
+        visibility: Visibility = Visibility.INVISIBLE,
+        **kwargs,
+    ):
         """
         Args:
             canvas (Canvas): the canvas this placement belongs to
@@ -94,14 +101,21 @@ class Placement:
 
     def __remove(self):
         self.__canvas.enqueue(
-            _action.RemoveImageAction(identifier=self.identifier))
+            _action.RemoveImageAction(identifier=self.identifier)
+        )
         self.__canvas.request_transmission()
 
     def __update(self):
-        self.__canvas.enqueue(_action.AddImageAction(**{
-            **self.__data,
-            **attr.asdict(_action.Identifiable(identifier=self.identifier))
-        }))
+        self.__canvas.enqueue(
+            _action.AddImageAction(
+                **{
+                    **self.__data,
+                    **attr.asdict(
+                        _action.Identifiable(identifier=self.identifier)
+                    ),
+                }
+            )
+        )
         self.__canvas.request_transmission()
 
     def __getattr__(self, name):
@@ -127,12 +141,20 @@ class Placement:
             raise AttributeError("There is no attribute named %s" % name)
 
         data = dict(self.__data)
-        self.__data.update(attr.asdict(_action.AddImageAction(**{
-            **self.__EMPTY_BASE_PAIRS,
-            **self.__data,
-            **attr.asdict(_action.Identifiable(identifier=self.identifier)),
-            name: value
-        })))
+        self.__data.update(
+            attr.asdict(
+                _action.AddImageAction(
+                    **{
+                        **self.__EMPTY_BASE_PAIRS,
+                        **self.__data,
+                        **attr.asdict(
+                            _action.Identifiable(identifier=self.identifier)
+                        ),
+                        name: value,
+                    }
+                )
+            )
+        )
 
         # remove the key's of the empty base pairs
         # so the developer is forced to set them by himself
@@ -148,6 +170,7 @@ class UeberzugProcess:
     """Class which handles the creation and
     destructions of ueberzug processes.
     """
+
     __KILL_TIMEOUT_SECONDS = 1
     __BUFFER_SIZE_BYTES = 50 * 1024
 
@@ -167,8 +190,7 @@ class UeberzugProcess:
     @property
     def running(self):
         """bool: ueberzug process is still running"""
-        return (self.__process is not None
-                and self.__process.poll() is None)
+        return self.__process is not None and self.__process.poll() is None
 
     @property
     def responsive(self):
@@ -185,11 +207,12 @@ class UeberzugProcess:
             self.stop()
 
         self.__process = subprocess.Popen(
-            ['ueberzug', 'layer'] + self.__start_options,
+            ["ueberzug", "layer"] + self.__start_options,
             stdin=subprocess.PIPE,
             bufsize=self.__BUFFER_SIZE_BYTES,
             universal_newlines=True,
-            start_new_session=True)
+            start_new_session=True,
+        )
 
     def stop(self):
         """Sends SIGTERM to the running ueberzug process
@@ -207,7 +230,8 @@ class UeberzugProcess:
                 timer_kill = threading.Timer(
                     self.__KILL_TIMEOUT_SECONDS,
                     os.killpg,
-                    [ueberzug_pgid, signal.SIGKILL])
+                    [ueberzug_pgid, signal.SIGKILL],
+                )
 
                 self.__process.terminate()
                 timer_kill.start()
@@ -271,13 +295,20 @@ class DequeCommandTransmitter(CommandTransmitter):
     def transmit(self):
         while self.__queue_commands:
             command = self.__queue_commands.popleft()
-            self._process.stdin.write(json.dumps({
-                **attr.asdict(command),
-                **attr.asdict(_action.Drawable(
-                    synchronously_draw=self.__synchronously_draw,
-                    draw=not self.__queue_commands))
-            }))
-            self._process.stdin.write('\n')
+            self._process.stdin.write(
+                json.dumps(
+                    {
+                        **attr.asdict(command),
+                        **attr.asdict(
+                            _action.Drawable(
+                                synchronously_draw=self.__synchronously_draw,
+                                draw=not self.__queue_commands,
+                            )
+                        ),
+                    }
+                )
+            )
+            self._process.stdin.write("\n")
         self._process.stdin.flush()
 
 
@@ -286,6 +317,7 @@ class LazyCommandTransmitter(CommandTransmitter):
 
     Ignores calls of the transmit method.
     """
+
     def __init__(self, transmitter):
         super().__init__(None)
         self.transmitter = transmitter
@@ -314,9 +346,10 @@ class Canvas:
 
     def __init__(self, debug=False):
         self.__process_arguments = (
-            ['--loader', ImageLoaderOption.SYNCHRONOUS.value]
-            if debug else
-            ['--silent'])
+            ["--loader", ImageLoaderOption.SYNCHRONOUS.value]
+            if debug
+            else ["--silent"]
+        )
         self.__process = None
         self.__transmitter = None
         self.__used_identifiers = set()
@@ -376,6 +409,7 @@ class Canvas:
         def decorator(*args, **kwargs):
             with self:
                 return function(*args, canvas=self, **kwargs)
+
         return decorator
 
     def __enter__(self):
