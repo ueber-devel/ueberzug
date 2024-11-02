@@ -13,8 +13,8 @@ def get_command(pid):
     Returns:
         str: the associated command name
     """
-    with open('/proc/{}/comm'.format(pid), 'r') as commfile:
-        return '\n'.join(commfile.readlines())
+    with open("/proc/{}/comm".format(pid), "r") as commfile:
+        return "\n".join(commfile.readlines())
 
 
 def is_same_command(pid0, pid1):
@@ -48,7 +48,7 @@ def send_signal_safe(own_pid, target_pid):
     """
     pidfile = None
     try:
-        pidfile = os.open(f'/proc/{target_pid}', os.O_DIRECTORY)
+        pidfile = os.open(f"/proc/{target_pid}", os.O_DIRECTORY)
         if is_same_command(own_pid, target_pid):
             signal.pidfd_send_signal(pidfile, signal.SIGUSR1)
     except FileNotFoundError:
@@ -92,7 +92,7 @@ def main(options):
     # ueberzug query_windows
     own_pid = os.getpid()
 
-    for pid in options['PIDS']:
+    for pid in options["PIDS"]:
         try:
             send_signal_safe(own_pid, int(pid))
         except AttributeError:

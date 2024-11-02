@@ -1,6 +1,7 @@
 """This module defines data parser
 which can be used to exchange information between processes.
 """
+
 import json
 import abc
 import shlex
@@ -50,14 +51,15 @@ class JsonParser(Parser):
 
     @staticmethod
     def get_name():
-        return 'json'
+        return "json"
 
     def parse(self, line):
         try:
             data = json.loads(line)
             if not isinstance(data, dict):
                 raise ValueError(
-                    'Expected to parse an json object, got ' + line)
+                    "Expected to parse an json object, got " + line
+                )
             return data
         except json.JSONDecodeError as error:
             raise ValueError(error)
@@ -70,31 +72,35 @@ class SimpleParser(Parser):
     """Parses key value pairs separated by a tab.
     Does not support escaping spaces.
     """
-    SEPARATOR = '\t'
+
+    SEPARATOR = "\t"
 
     @staticmethod
     def get_name():
-        return 'simple'
+        return "simple"
 
     def parse(self, line):
         components = line.split(SimpleParser.SEPARATOR)
 
         if len(components) % 2 != 0:
             raise ValueError(
-                'Expected key value pairs, ' +
-                'but at least one key has no value: ' +
-                line)
+                "Expected key value pairs, "
+                + "but at least one key has no value: "
+                + line
+            )
 
         return {
             key: value
             for key, value in itertools.zip_longest(
-                components[::2], components[1::2])
+                components[::2], components[1::2]
+            )
         }
 
     def unparse(self, data):
         return SimpleParser.SEPARATOR.join(
-            str(key) + SimpleParser.SEPARATOR + str(value.replace('\n', ''))
-            for key, value in data.items())
+            str(key) + SimpleParser.SEPARATOR + str(value.replace("\n", ""))
+            for key, value in data.items()
+        )
 
 
 class BashParser(Parser):
@@ -104,32 +110,35 @@ class BashParser(Parser):
 
     @staticmethod
     def get_name():
-        return 'bash'
+        return "bash"
 
     def parse(self, line):
         # remove 'typeset -A varname=( ' and ')'
-        start = line.find('(')
-        end = line.rfind(')')
+        start = line.find("(")
+        end = line.rfind(")")
 
         if not 0 <= start < end:
             raise ValueError(
                 "Expected input to be formatted like "
                 "the output of bashs `declare -p` function. "
-                "Got: " + line)
+                "Got: " + line
+            )
 
         components = itertools.dropwhile(
-            lambda text: not text or text[0] != '[',
-            shlex.split(line[start + 1:end]))
+            lambda text: not text or text[0] != "[",
+            shlex.split(line[start + 1 : end]),
+        )
         return {
             key[1:-1]: value
             for pair in components
-            for key, value in (pair.split('=', maxsplit=1),)
+            for key, value in (pair.split("=", maxsplit=1),)
         }
 
     def unparse(self, data):
-        return ' '.join(
-            '[' + str(key) + ']=' + shlex.quote(value)
-            for key, value in data.items())
+        return " ".join(
+            "[" + str(key) + "]=" + shlex.quote(value)
+            for key, value in data.items()
+        )
 
 
 @enum.unique

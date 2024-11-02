@@ -2,6 +2,7 @@
 which allow to execute operations
 for each element of a list of objects of the same class.
 """
+
 import abc
 import collections.abc
 import functools
@@ -15,15 +16,20 @@ class SubclassingMeta(abc.ABCMeta):
     we need to create a subclass for each different type
     if we want to dynamically use them.
     """
-    SUBCLASS_IDENTIFIER = '__subclassed__'
+
+    SUBCLASS_IDENTIFIER = "__subclassed__"
 
     def __call__(cls, *args, **kwargs):
         if hasattr(cls, SubclassingMeta.SUBCLASS_IDENTIFIER):
             return super().__call__(*args, **kwargs)
 
-        subclass = type(cls.__name__, (cls,), {
-            SubclassingMeta.SUBCLASS_IDENTIFIER:
-            SubclassingMeta.SUBCLASS_IDENTIFIER})
+        subclass = type(
+            cls.__name__,
+            (cls,),
+            {
+                SubclassingMeta.SUBCLASS_IDENTIFIER: SubclassingMeta.SUBCLASS_IDENTIFIER
+            },
+        )
         return subclass(*args, **kwargs)
 
 
@@ -32,6 +38,7 @@ class BatchList(collections.abc.MutableSequence, metaclass=SubclassingMeta):
     for each element of a list of instances of the same class
     in a similar way to one of these instances it would.
     """
+
     __attributes_declared = False
 
     class BatchMember:
@@ -45,8 +52,12 @@ class BatchList(collections.abc.MutableSequence, metaclass=SubclassingMeta):
 
     class BatchField(BatchMember):
         def __get__(self, owner_instance, owner_class):
-            return BatchList([instance.__getattribute__(self.name)
-                              for instance in self.outer])
+            return BatchList(
+                [
+                    instance.__getattribute__(self.name)
+                    for instance in self.outer
+                ]
+            )
 
         def __set__(self, owner_instance, value):
             for instance in self.outer:
@@ -59,8 +70,11 @@ class BatchList(collections.abc.MutableSequence, metaclass=SubclassingMeta):
     class BatchMethod(BatchMember):
         def __call__(self, *args, **kwargs):
             return BatchList(
-                [instance.__getattribute__(self.name)(*args, **kwargs)
-                 for instance in self.outer])
+                [
+                    instance.__getattribute__(self.name)(*args, **kwargs)
+                    for instance in self.outer
+                ]
+            )
 
     def __init__(self, collection: list):
         """
@@ -81,14 +95,17 @@ class BatchList(collections.abc.MutableSequence, metaclass=SubclassingMeta):
 
     def __getattr__(self, name):
         if self.__initialized:
-            return AttributeError("'%s' object has no attribute '%s'"
-                                  % (self.__type, name))
+            return AttributeError(
+                "'%s' object has no attribute '%s'" % (self.__type, name)
+            )
         return BatchList([])
 
     def __setattr__(self, name, value):
-        if (not self.__attributes_declared or
-                self.__initialized or
-                not isinstance(getattr(self, name), BatchList)):
+        if (
+            not self.__attributes_declared
+            or self.__initialized
+            or not isinstance(getattr(self, name), BatchList)
+        ):
             super().__setattr__(name, value)
 
     def __init_members__(self):
@@ -110,25 +127,25 @@ class BatchList(collections.abc.MutableSequence, metaclass=SubclassingMeta):
 
     @staticmethod
     def __get_public_attributes(target_instance):
-        attributes = (vars(target_instance)
-                      if hasattr(target_instance, '__dict__')
-                      else [])
-        return (name for name in attributes
-                if not name.startswith('_'))
+        attributes = (
+            vars(target_instance)
+            if hasattr(target_instance, "__dict__")
+            else []
+        )
+        return (name for name in attributes if not name.startswith("_"))
 
     @staticmethod
     @functools.lru_cache()
     def __get_public_members(target_type):
         members = {
             name: member
-            for type_members in
-            map(vars, reversed(target_type.mro()))
+            for type_members in map(vars, reversed(target_type.mro()))
             for name, member in type_members.items()
         }
         return {
             name: member
             for name, member in members.items()
-            if not name.startswith('_')
+            if not name.startswith("_")
         }
 
     def __init_methods__(self, target_instance):
@@ -136,11 +153,13 @@ class BatchList(collections.abc.MutableSequence, metaclass=SubclassingMeta):
         for name, value in public_members.items():
             if callable(value):
                 self.__declare_decorator__(
-                    name, BatchList.BatchMethod(self, name))
+                    name, BatchList.BatchMethod(self, name)
+                )
             else:
                 # should be an decorator
                 self.__declare_decorator__(
-                    name, BatchList.BatchField(self, name))
+                    name, BatchList.BatchField(self, name)
+                )
 
     def __enter__(self):
         self.entered = True
@@ -241,7 +260,8 @@ class BatchList(collections.abc.MutableSequence, metaclass=SubclassingMeta):
         return reversed(self.__collection)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
+
     class FooBar:
         def __init__(self, a, b, c):
             self.mhm = a
@@ -259,9 +279,9 @@ if __name__ == '__main__':
     # print(vars(FooBar()))
     # print properties and methods
     # print(vars(FooBar).keys())
-    blist = BatchList([FooBar('foo', 'bar', 'yay')])
-    blist += [FooBar('foobar', 'barfoo', 'yay foobar')]
-    print('mhm', blist.mhm)
-    print('prop', blist.prop)
+    blist = BatchList([FooBar("foo", "bar", "yay")])
+    blist += [FooBar("foobar", "barfoo", "yay foobar")]
+    print("mhm", blist.mhm)
+    print("prop", blist.prop)
     # print('ok', blist.ok)
-    print('ok call', blist.ok())
+    print("ok call", blist.ok())

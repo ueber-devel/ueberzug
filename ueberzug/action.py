@@ -16,8 +16,13 @@ class Action(metaclass=abc.ABCMeta):
     Defines a general interface used to implement the building of commands
     and their execution.
     """
-    action = attr.ib(type=str, default=attr.Factory(
-        lambda self: self.get_action_name(), takes_self=True))
+
+    action = attr.ib(
+        type=str,
+        default=attr.Factory(
+            lambda self: self.get_action_name(), takes_self=True
+        ),
+    )
 
     @staticmethod
     @abc.abstractmethod
@@ -34,6 +39,7 @@ class Action(metaclass=abc.ABCMeta):
 @attr.s(kw_only=True)
 class Drawable:
     """Defines the attributes of drawable actions."""
+
     draw = attr.ib(default=True, converter=conversion.to_bool)
     synchronously_draw = attr.ib(default=False, converter=conversion.to_bool)
 
@@ -43,12 +49,14 @@ class Identifiable:
     """Defines the attributes of actions
     which are associated to an identifier.
     """
+
     identifier = attr.ib(type=str)
 
 
 @attr.s(kw_only=True)
 class DrawAction(Action, Drawable, metaclass=abc.ABCMeta):
     """Defines actions which redraws all windows."""
+
     # pylint: disable=abstract-method
     __redraw_scheduled = False
 
@@ -72,12 +80,14 @@ class DrawAction(Action, Drawable, metaclass=abc.ABCMeta):
             async def redraw():
                 windows.draw()
                 DrawAction.__redraw_scheduled = False
+
             return redraw()
         return None
 
     async def apply(self, windows, view, tools):
         if self.draw:
             import asyncio
+
             if self.synchronously_draw:
                 windows.draw()
                 # force coroutine switch
@@ -92,6 +102,7 @@ class DrawAction(Action, Drawable, metaclass=abc.ABCMeta):
 @attr.s(kw_only=True)
 class ImageAction(DrawAction, Identifiable, metaclass=abc.ABCMeta):
     """Defines actions which are related to images."""
+
     # pylint: disable=abstract-method
     pass
 
@@ -111,14 +122,15 @@ class AddImageAction(ImageAction):
     scaling_position_x = attr.ib(type=float, converter=float, default=0)
     scaling_position_y = attr.ib(type=float, converter=float, default=0)
     scaler = attr.ib(
-        type=str, default=scaling.ContainImageScaler.get_scaler_name())
+        type=str, default=scaling.ContainImageScaler.get_scaler_name()
+    )
     # deprecated
     max_width = attr.ib(type=int, converter=int, default=0)
     max_height = attr.ib(type=int, converter=int, default=0)
 
     @staticmethod
     def get_action_name():
-        return 'add'
+        return "add"
 
     def __attrs_post_init__(self):
         self.width = self.max_width or self.width
@@ -132,8 +144,7 @@ class AddImageAction(ImageAction):
     def scaler_class(self):
         """scaling.ImageScaler: the used scaler class of this placement"""
         if self.__scaler_class is None:
-            self.__scaler_class = \
-                scaling.ScalerOption(self.scaler).scaler_class
+            self.__scaler_class = scaling.ScalerOption(self.scaler).scaler_class
         return self.__scaler_class
 
     @property
@@ -156,10 +167,12 @@ class AddImageAction(ImageAction):
         """
         return old_placement and not (
             old_placement.last_modified < self.last_modified
-            or self.path != old_placement.path)
+            or self.path != old_placement.path
+        )
 
-    def is_full_reload_required(self, old_placement,
-                                screen_columns, screen_rows):
+    def is_full_reload_required(
+        self, old_placement, screen_columns, screen_rows
+    ):
         """Determines whether it's required to fully reload
         the image of the placement to properly render the placement.
 
@@ -175,13 +188,17 @@ class AddImageAction(ImageAction):
             bool: True if the image should be reloaded
         """
         return old_placement and (
-            (not self.scaler_class.is_indulgent_resizing()
-             and old_placement.scaler.is_indulgent_resizing())
+            (
+                not self.scaler_class.is_indulgent_resizing()
+                and old_placement.scaler.is_indulgent_resizing()
+            )
             or (old_placement.width <= screen_columns < self.width)
-            or (old_placement.height <= screen_rows < self.height))
+            or (old_placement.height <= screen_rows < self.height)
+        )
 
-    def is_partly_reload_required(self, old_placement,
-                                  screen_columns, screen_rows):
+    def is_partly_reload_required(
+        self, old_placement, screen_columns, screen_rows
+    ):
         """Determines whether it's required to partly reload
         the image of the placement to render the placement more quickly.
 
@@ -197,28 +214,36 @@ class AddImageAction(ImageAction):
             bool: True if the image should be reloaded
         """
         return old_placement and (
-            (self.scaler_class.is_indulgent_resizing()
-             and not old_placement.scaler.is_indulgent_resizing())
+            (
+                self.scaler_class.is_indulgent_resizing()
+                and not old_placement.scaler.is_indulgent_resizing()
+            )
             or (self.width <= screen_columns < old_placement.width)
-            or (self.height <= screen_rows < old_placement.height))
+            or (self.height <= screen_rows < old_placement.height)
+        )
 
     async def apply(self, windows, view, tools):
         try:
             import ueberzug.ui as ui
             import ueberzug.loading as loading
+
             old_placement = view.media.pop(self.identifier, None)
             cache = old_placement and old_placement.cache
             image = old_placement and old_placement.image
 
-            max_font_width = max(map(
-                lambda i: i or 0, windows.parent_info.font_width or [0]))
-            max_font_height = max(map(
-                lambda i: i or 0, windows.parent_info.font_height or [0]))
+            max_font_width = max(
+                map(lambda i: i or 0, windows.parent_info.font_width or [0])
+            )
+            max_font_height = max(
+                map(lambda i: i or 0, windows.parent_info.font_height or [0])
+            )
             font_size_available = max_font_width and max_font_height
-            screen_columns = (font_size_available and
-                              view.screen_width / max_font_width)
-            screen_rows = (font_size_available and
-                           view.screen_height / max_font_height)
+            screen_columns = (
+                font_size_available and view.screen_width / max_font_width
+            )
+            screen_rows = (
+                font_size_available and view.screen_height / max_font_height
+            )
 
             # By default images are only stored up to a resolution which
             # is about as big as the screen resolution.
@@ -233,35 +258,61 @@ class AddImageAction(ImageAction):
             # and sometimes it's not required anymore which is
             # why they should be partly reloaded
             # (to speed up the resize operations again).
-            if (not self.is_same_image(old_placement)
-                    or (font_size_available and self.is_full_reload_required(
-                        old_placement, screen_columns, screen_rows))
-                    or (font_size_available and self.is_partly_reload_required(
-                        old_placement, screen_columns, screen_rows))):
+            if (
+                not self.is_same_image(old_placement)
+                or (
+                    font_size_available
+                    and self.is_full_reload_required(
+                        old_placement, screen_columns, screen_rows
+                    )
+                )
+                or (
+                    font_size_available
+                    and self.is_partly_reload_required(
+                        old_placement, screen_columns, screen_rows
+                    )
+                )
+            ):
                 upper_bound_size = None
                 image_post_load_processor = None
-                if (self.scaler_class != scaling.CropImageScaler and
-                        font_size_available):
+                if (
+                    self.scaler_class != scaling.CropImageScaler
+                    and font_size_available
+                ):
                     upper_bound_size = (
                         max_font_width * self.width,
-                        max_font_height * self.height)
-                if (self.scaler_class != scaling.CropImageScaler
-                        and font_size_available
-                        and self.width <= screen_columns
-                        and self.height <= screen_rows):
-                    image_post_load_processor = \
+                        max_font_height * self.height,
+                    )
+                if (
+                    self.scaler_class != scaling.CropImageScaler
+                    and font_size_available
+                    and self.width <= screen_columns
+                    and self.height <= screen_rows
+                ):
+                    image_post_load_processor = (
                         loading.CoverPostLoadImageProcessor(
-                            view.screen_width, view.screen_height)
+                            view.screen_width, view.screen_height
+                        )
+                    )
                 image = tools.loader.load(
-                    self.path, upper_bound_size, image_post_load_processor)
+                    self.path, upper_bound_size, image_post_load_processor
+                )
                 cache = None
 
             view.media[self.identifier] = ui.CanvasWindow.Placement(
-                self.x, self.y, self.width, self.height,
-                geometry.Point(self.scaling_position_x,
-                               self.scaling_position_y),
+                self.x,
+                self.y,
+                self.width,
+                self.height,
+                geometry.Point(
+                    self.scaling_position_x, self.scaling_position_y
+                ),
                 self.scaler_class(),
-                self.path, image, self.last_modified, cache)
+                self.path,
+                image,
+                self.last_modified,
+                cache,
+            )
         finally:
             await super().apply(windows, view, tools)
 
@@ -272,7 +323,7 @@ class RemoveImageAction(ImageAction):
 
     @staticmethod
     def get_action_name():
-        return 'remove'
+        return "remove"
 
     async def apply(self, windows, view, tools):
         try:

@@ -31,7 +31,7 @@ class TerminalInfo:
         # <=> - padding = font_width * cols - xpixels
         # <=> padding = - font_width * cols + xpixels
         font_size = math.floor(pixels / chars)
-        padding = (- font_size * chars + pixels) / 2
+        padding = (-font_size * chars + pixels) / 2
         return padding
 
     @staticmethod
@@ -50,8 +50,14 @@ class TerminalInfo:
         """bool: True if the information
         of every attribute has been calculated.
         """
-        return all((self.font_width, self.font_height,
-                    self.padding_vertical, self.padding_horizontal))
+        return all(
+            (
+                self.font_width,
+                self.font_height,
+                self.padding_vertical,
+                self.padding_horizontal,
+            )
+        )
 
     def reset(self):
         """Resets the font size and padding."""
@@ -79,9 +85,11 @@ class TerminalInfo:
         self.padding_horizontal = max(padding_horizontal, padding_vertical)
         self.padding_vertical = self.padding_horizontal
         self.font_width = self.__guess_font_size(
-            cols, xpixels, self.padding_horizontal)
+            cols, xpixels, self.padding_horizontal
+        )
         self.font_height = self.__guess_font_size(
-            rows, ypixels, self.padding_vertical)
+            rows, ypixels, self.padding_vertical
+        )
 
         if xpixels < fallback_width and ypixels < fallback_height:
             # some terminal emulators return the size of the text area
@@ -103,7 +111,7 @@ class TerminalInfo:
             #      adds the additional space to the right margin
             #      (which will most likely be done)
             #      (stterm seems to do that)
-            self.padding_horizontal = 1/2 * (fallback_width - xpixels)
-            self.padding_vertical = 1/2 * (fallback_height - ypixels)
+            self.padding_horizontal = 1 / 2 * (fallback_width - xpixels)
+            self.padding_vertical = 1 / 2 * (fallback_height - ypixels)
             self.font_width = xpixels / cols
             self.font_height = ypixels / rows

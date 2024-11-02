@@ -1,6 +1,7 @@
 """Modul which implements class and functions
 all about scaling images.
 """
+
 import abc
 import enum
 
@@ -18,7 +19,7 @@ class ImageScaler(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def get_scaler_name():
         """Returns:
-            str: the constant name which is associated to this scaler.
+        str: the constant name which is associated to this scaler.
         """
         raise NotImplementedError()
 
@@ -50,8 +51,7 @@ class ImageScaler(metaclass=abc.ABCMeta):
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def scale(self, image, position: geometry.Point,
-              width: int, height: int):
+    def scale(self, image, position: geometry.Point, width: int, height: int):
         """Scales the image according to the respective implementation.
 
         Args:
@@ -70,6 +70,7 @@ class ImageScaler(metaclass=abc.ABCMeta):
 
 class OffsetImageScaler(ImageScaler, metaclass=abc.ABCMeta):
     """Extension of the ImageScaler class by Offset specific functions."""
+
     # pylint can't detect abstract subclasses
     # pylint: disable=abstract-method
 
@@ -88,8 +89,12 @@ class OffsetImageScaler(ImageScaler, metaclass=abc.ABCMeta):
         Returns:
             int: the offset
         """
-        return int(min(max(0, position * image_size - target_size / 2),
-                       image_size - target_size))
+        return int(
+            min(
+                max(0, position * image_size - target_size / 2),
+                image_size - target_size,
+            )
+        )
 
 
 class MinSizeImageScaler(ImageScaler):
@@ -97,11 +102,11 @@ class MinSizeImageScaler(ImageScaler):
     Subclasses calculate the final resolution of the scaled image
     as the minimum value of the image size and the maximum size.
     """
+
     # pylint: disable=abstract-method
 
     def calculate_resolution(self, image, width: int, height: int):
-        return (min(width, image.width),
-                min(height, image.height))
+        return (min(width, image.width), min(height, image.height))
 
 
 class CropImageScaler(MinSizeImageScaler, OffsetImageScaler):
@@ -117,15 +122,14 @@ class CropImageScaler(MinSizeImageScaler, OffsetImageScaler):
     def is_indulgent_resizing():
         return False
 
-    def scale(self, image, position: geometry.Point,
-              width: int, height: int):
+    def scale(self, image, position: geometry.Point, width: int, height: int):
         width, height = self.calculate_resolution(image, width, height)
         image_width, image_height = image.width, image.height
         offset_x = self.get_offset(position.x, width, image_width)
         offset_y = self.get_offset(position.y, height, image_height)
-        return image \
-            .crop((offset_x, offset_y,
-                   offset_x + width, offset_y + height))
+        return image.crop(
+            (offset_x, offset_y, offset_x + width, offset_y + height)
+        )
 
 
 class DistortImageScaler(ImageScaler):
@@ -144,9 +148,9 @@ class DistortImageScaler(ImageScaler):
     def calculate_resolution(self, image, width: int, height: int):
         return width, height
 
-    def scale(self, image, position: geometry.Point,
-              width: int, height: int):
+    def scale(self, image, position: geometry.Point, width: int, height: int):
         import PIL.Image
+
         width, height = self.calculate_resolution(image, width, height)
         return image.resize((width, height), PIL.Image.LANCZOS)
 
@@ -188,7 +192,8 @@ class ContainImageScaler(FitContainImageScaler):
 
     def calculate_resolution(self, image, width: int, height: int):
         return super().calculate_resolution(
-            image, min(width, image.width), min(height, image.height))
+            image, min(width, image.width), min(height, image.height)
+        )
 
 
 class ForcedCoverImageScaler(DistortImageScaler, OffsetImageScaler):
@@ -209,9 +214,9 @@ class ForcedCoverImageScaler(DistortImageScaler, OffsetImageScaler):
     def is_indulgent_resizing():
         return True
 
-    def scale(self, image, position: geometry.Point,
-              width: int, height: int):
+    def scale(self, image, position: geometry.Point, width: int, height: int):
         import PIL.Image
+
         width, height = self.calculate_resolution(image, width, height)
         image_width, image_height = image.width, image.height
         if width / image_width > height / image_height:
@@ -223,10 +228,9 @@ class ForcedCoverImageScaler(DistortImageScaler, OffsetImageScaler):
         offset_x = self.get_offset(position.x, width, image_width)
         offset_y = self.get_offset(position.y, height, image_height)
 
-        return image \
-            .resize((image_width, image_height), PIL.Image.LANCZOS) \
-            .crop((offset_x, offset_y,
-                   offset_x + width, offset_y + height))
+        return image.resize(
+            (image_width, image_height), PIL.Image.LANCZOS
+        ).crop((offset_x, offset_y, offset_x + width, offset_y + height))
 
 
 class CoverImageScaler(MinSizeImageScaler, ForcedCoverImageScaler):
@@ -246,6 +250,7 @@ class CoverImageScaler(MinSizeImageScaler, ForcedCoverImageScaler):
 @enum.unique
 class ScalerOption(str, enum.Enum):
     """Enum which lists the useable ImageScaler classes."""
+
     DISTORT = DistortImageScaler
     CROP = CropImageScaler
     FIT_CONTAIN = FitContainImageScaler
