@@ -48,6 +48,22 @@ but they will be installed by pip.
   and void, please request the package maintainer of your favourite distro to  
   package the latest release of ueberzug.
 
+- Install from source example:
+  ```sh
+  python -m build
+  pip3 install dist/ueberzug-18.3.0-cp312-cp312-linux_x86_64.whl 
+  ```
+- NOTICE TO PACKAGE MAINTAINERS:
+  we are now using mesonpy to build the C extensions, so be sure to add:    
+  - meson
+  - meson-python
+
+  As build time dependencies to your build dependencies definition, also adjust your build
+  scripts accordingly as the `python -m build` will produce a wheel that is correctly
+  linked to the current cpython version, i.e. for debian testing/unstable
+  `cpython-312-x86_64-linux-gnu.so` at the time of writing which will lend a wheel with the
+  name `ueberzug-18.3.0-cp312-cp312-linux_x86_64.whl`
+
   [![Packaging status](https://repology.org/badge/vertical-allrepos/ueberzug.svg)](https://repology.org/project/ueberzug/versions)
 
   Original author rant:  
