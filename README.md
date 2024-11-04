@@ -70,8 +70,8 @@ Commands are separated with a line break.
 
 - json: Command as json object
 - simple:  
-  Key-value pairs seperated by a tab,  
-  pairs are also seperated by a tab  
+  Key-value pairs separated by a tab,  
+  pairs are also separated by a tab  
   **:warning: ONLY FOR TESTING!**  
   Simple was never intended for the usage in production!  
   It doesn't support paths containing tabs or line breaks  
@@ -90,7 +90,7 @@ it will be replaced.
 
 | Key           | Type         | Description                                                        | Optional |
 |---------------|--------------|--------------------------------------------------------------------|----------|
-| identifier    | String       | a freely choosen identifier of the image                           | No       |
+| identifier    | String       | a freely chosen identifier of the image                            | No       |
 | x             | Integer      | x position                                                         | No       |
 | y             | Integer      | y position                                                         | No       |
 | path          | String       | path to the image                                                  | No       |
