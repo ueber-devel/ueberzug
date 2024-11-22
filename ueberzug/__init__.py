@@ -1,4 +1,4 @@
-__version__ = "18.3.0"
+__version__ = "18.3.1"
 __license__ = "GPLv3"
 __description__ = "ueberzug is a command line util which allows to display images in combination with X11"
 __url_repository__ = "https://github.com/ueber-devel/ueberzug"
