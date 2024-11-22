@@ -51,6 +51,7 @@ def get_info(pid: int):
             rb"(?P<session>[-+]?\d+) "
             rb"(?P<tty_nr>[-+]?\d+)",
             data,
+            re.DOTALL,
         ).groupdict()
 
 
