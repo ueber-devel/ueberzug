@@ -5,29 +5,11 @@ The only change is the prevention of waiting
 for each thread to exit on exiting the script.
 """
 
+import sys
 import threading
 import weakref
 import concurrent.futures as futures
-
-
-def _worker(executor_reference, work_queue):
-    # pylint: disable=W0212
-    try:
-        while True:
-            work_item = work_queue.get(block=True)
-            if work_item is not None:
-                work_item.run()
-                del work_item
-                continue
-            executor = executor_reference()
-            if executor is None or executor._shutdown:
-                if executor is not None:
-                    executor._shutdown = True
-                work_queue.put(None)
-                return
-            del executor
-    except BaseException:
-        futures._base.LOGGER.critical("Exception in worker", exc_info=True)
+import concurrent.futures.thread as thread
 
 
 class DaemonThreadPoolExecutor(futures.ThreadPoolExecutor):
@@ -36,17 +18,30 @@ class DaemonThreadPoolExecutor(futures.ThreadPoolExecutor):
     """
 
     def _adjust_thread_count(self):
-        def weakref_cb(_, queue=self._work_queue):
-            queue.put(None)
+        if self._idle_semaphore.acquire(timeout=0):
+            return
+
+        def weakref_cb(_, q=self._work_queue):
+            q.put(None)
 
         num_threads = len(self._threads)
         if num_threads < self._max_workers:
-            thread_name = "%s_%d" % (self, num_threads)
-            thread = threading.Thread(
-                name=thread_name,
-                target=_worker,
-                args=(weakref.ref(self, weakref_cb), self._work_queue),
+            thread_name = "%s_%d" % (self._thread_name_prefix or self, num_threads)
+            if sys.version_info.major >= 3 and sys.version_info.minor >= 14:
+                args = (
+                    weakref.ref(self, weakref_cb),
+                    self._create_worker_context(),
+                    self._work_queue,
+                )
+            else:
+                args = (
+                    weakref.ref(self, weakref_cb),
+                    self._work_queue,
+                    self._initializer,
+                    self._initargs,
+                )
+            t = threading.Thread(
+                name=thread_name, target=thread._worker, args=args, daemon=True
             )
-            thread.daemon = True
-            thread.start()
-            self._threads.add(thread)
+            t.start()
+            self._threads.add(t)

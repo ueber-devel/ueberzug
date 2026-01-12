@@ -218,7 +218,8 @@ def main(options):
         finally:
             os.close(outfile)
 
-    loop = asyncio.get_event_loop()
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
     executor = thread.DaemonThreadPoolExecutor(max_workers=2)
     parser_object = parser.ParserOption(options["--parser"]).parser_class()
     image_loader = loading.ImageLoaderOption(options["--loader"]).loader_class()
