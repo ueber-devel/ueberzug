@@ -4,7 +4,6 @@ import os
 import asyncio
 import signal
 import pathlib
-import re
 import tempfile
 
 import ueberzug.thread as thread
@@ -37,7 +36,6 @@ async def process_commands(
                 break
 
             try:
-                line = re.sub("\\\\[$]", "$", line)
                 data = tools.parser.parse(line[:-1])
                 command = action.Command(data["action"])
                 await command.action_class(**data).apply(windows, view, tools)
