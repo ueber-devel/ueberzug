@@ -7,6 +7,7 @@ import abc
 import shlex
 import itertools
 import enum
+import re
 
 
 class Parser:
@@ -113,26 +114,85 @@ class BashParser(Parser):
         return "bash"
 
     def parse(self, line):
-        # remove 'typeset -A varname=( ' and ')'
-        start = line.find("(")
-        end = line.rfind(")")
+        def multi_sub(s, patterns):
+            def repl(match):
+                for i, group in enumerate(match.groups()):
+                    if group:
+                        _, replacement = patterns[i]
+                        return replacement(group) if callable(replacement) else replacement
+                return ""
+            patterns = list(patterns.items())
+            return re.sub("|".join(f"({p})" for p, _ in patterns), repl, s)
 
-        if not 0 <= start < end:
-            raise ValueError(
-                "Expected input to be formatted like "
-                "the output of bashs `declare -p` function. "
-                "Got: " + line
-            )
+        def unquote(s):
+            # Taken from https://www.gnu.org/software/bash/manual/html_node/Quoting.html
+            if s[0] == "'" and s[-1] == "'":
+                return s[1:-1]
+            elif s[0] == '"' and s[-1] == '"':
+                return multi_sub(s[1:-1], {
+                    r"\\\\": "\\",
+                    r"\\\"": '"',
+                    r"\\\$": "$",
+                    r"\\`": "`",
+                })
+            elif s.startswith("$'") and s.endswith("'"):
+                return multi_sub(s[2:-1], {
+                    r"\\a": "\a",
+                    r"\\b": "\b",
+                    r"\\e": "\x1B",
+                    r"\\E": "\x1B",
+                    r"\\f": "\f",
+                    r"\\n": "\n",
+                    r"\\r": "\r",
+                    r"\\t": "\t",
+                    r"\\v": "\v",
+                    r"\\\\": "\\",
+                    r"\\'": "'",
+                    r'\\"': '"',
+                    r"\\\?": "?",
+                    r"\\[0-9]{1,3}": lambda m: chr(int(m[1:], base=8)),
+                    r"\\x[0-9A-Fa-f]{1,2}": lambda m: chr(int(m[2:], base=16)),
+                    r"\\u[0-9A-Fa-f]{1,4}": lambda m: chr(int(m[2:], base=16)),
+                    r"\\U[0-9A-Fa-f]{1,8}": lambda m: chr(int(m[2:], base=16)),
+                    # Taken from chartypes.h in bash
+                    # #define TOCTRL(x)	((x) == '?' ? 0x7f : (TOUPPER(x) & 0x1f))
+                    r"\\c[\x01-\x7F]": lambda m: "\x7F" if m[2:] == "?" else chr(ord(m[2:].upper()) & 0x1F),
+                })
+            return s
 
-        components = itertools.dropwhile(
-            lambda text: not text or text[0] != "[",
-            shlex.split(line[start + 1 : end]),
-        )
-        return {
-            key[1:-1]: value
-            for pair in components
-            for key, value in (pair.split("=", maxsplit=1),)
-        }
+        def expect(token, expectation):
+            if isinstance(expectation, str) and token != expectation \
+                    or token not in expectation:
+                raise ValueError(
+                    "Expected input to be formatted like "
+                    "the output of the `declare -p` command from bash. "
+                    "Got: " + line
+                )
+
+        lexer = shlex.shlex(line)
+        expect(lexer.get_token(), ["declare", "typeset"])
+        expect(lexer.get_token(), "-")
+        expect(lexer.get_token(), "A")
+        lexer.get_token()
+        expect(lexer.get_token(), "=")
+        expect(lexer.get_token(), "(")
+
+        data = {}
+        while (token := lexer.get_token()) not in [")", lexer.eof]:
+            expect(token, "[")
+            token = lexer.get_token()
+            if token == "$":
+                token += lexer.get_token()
+            key = unquote(token)
+            expect(lexer.get_token(), "]")
+            expect(lexer.get_token(), "=")
+            token = lexer.get_token()
+            if token == "$":
+                token += lexer.get_token()
+            data[key] = unquote(token)
+        expect(token, ")")
+
+        return data
 
     def unparse(self, data):
         return " ".join(
