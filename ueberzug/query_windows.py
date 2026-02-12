@@ -1,6 +1,7 @@
 import os
 import signal
 import errno
+import psutil
 
 
 def get_command(pid):
@@ -13,8 +14,7 @@ def get_command(pid):
     Returns:
         str: the associated command name
     """
-    with open("/proc/{}/comm".format(pid), "r") as commfile:
-        return "\n".join(commfile.readlines())
+    psutil.Process(pid=pid).name()
 
 
 def is_same_command(pid0, pid1):
